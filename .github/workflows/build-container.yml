@@ -25,7 +25,7 @@ jobs:
       with:
         node-version: 20.x
     - name: Start cluster
-      uses: medyagh/setup-minikube@master
+      uses: nolar/setup-k3d-k3s@v1
       # now you can run kubectl to see the pods in the cluster
     - name: Try the cluster!
       run: kubectl get pods -A
@@ -40,7 +40,6 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit == 'true'
       run: |
         export SHELL=/bin/bash
-        eval $(minikube -p minikube docker-env)
         docker load -i ~/image-cache/headlamp-plugins-test.tar
         docker load -i ~/image-cache/headlamp.tar
     - name: Make a .plugins folder for testing later
@@ -65,7 +64,6 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
         export SHELL=/bin/bash
-        eval $(minikube -p minikube docker-env)
         DOCKER_IMAGE_VERSION=latest make image
         DOCKER_IMAGE_VERSION=latest DOCKER_PLUGINS_IMAGE_NAME=headlamp-plugins-test make build-plugins-container
         echo -n "verifying images:"
@@ -74,7 +72,6 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
         export SHELL=/bin/bash
-        eval $(minikube -p minikube docker-env)
         echo "----------------------------"
         echo "Test .plugins folder is copied to the right place in the image by 'make image'"
         echo "--- Files in the image /headlamp/ folder: ---"
@@ -106,7 +103,7 @@ jobs:
       run: |
         echo "------------------sleeping 3...------------------"
         sleep 6
-        minikube service list
+        kubectl get services --all-namespaces
         minikube service headlamp -n kube-system --url
         kubectl get deployments -n kube-system
         minikube logs | tail -10
@@ -137,7 +134,6 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
         export SHELL=/bin/bash
-        eval $(minikube -p minikube docker-env)
         mkdir -p ~/image-cache
         docker save -o ~/image-cache/headlamp-plugins-test.tar ghcr.io/headlamp-k8s/headlamp-plugins-test
         docker save -o ~/image-cache/headlamp.tar ghcr.io/headlamp-k8s/headlamp
