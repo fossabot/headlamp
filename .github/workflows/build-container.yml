@@ -104,14 +104,19 @@ jobs:
         echo "------------------sleeping 3...------------------"
         sleep 6
         kubectl get services --all-namespaces
-        minikube service headlamp -n kube-system --url
+        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
+        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
+        echo $SERVICE_URL
         kubectl get deployments -n kube-system
-        minikube logs | tail -10
+        docker logs $(docker ps -f name=k3d -q) | tail -10
         echo "------------------waiting for headlamp deployment to be available...------------------"
         kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
-        minikube service headlamp -n kube-system --url
+        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
+        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
+        echo $SERVICE_URL
         echo "------------------opening the service------------------"
-        export SERVICE_URL=$(minikube service headlamp -n kube-system --url | tail -1)
+        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
+        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
         curl -L $SERVICE_URL | grep -q "Headlamp: Kubernetes Web UI"        
         echo "------------------Getting HEADLAMP_TOKEN------------------"
