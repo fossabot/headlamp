@@ -25,9 +25,7 @@ jobs:
       with:
         node-version: 20.x
     - name: Start cluster
-      uses: nolar/setup-k3d-k3s@v1
-      with:
-        version: latest
+      uses: medyagh/setup-minikube@master
       # now you can run kubectl to see the pods in the cluster
     - name: Try the cluster!
       run: kubectl get pods -A
@@ -42,6 +40,7 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit == 'true'
       run: |
         export SHELL=/bin/bash
+        eval $(minikube -p minikube docker-env)
         docker load -i ~/image-cache/headlamp-plugins-test.tar
         docker load -i ~/image-cache/headlamp.tar
     - name: Make a .plugins folder for testing later
@@ -66,6 +65,7 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
         export SHELL=/bin/bash
+        eval $(minikube -p minikube docker-env)
         DOCKER_IMAGE_VERSION=latest make image
         DOCKER_IMAGE_VERSION=latest DOCKER_PLUGINS_IMAGE_NAME=headlamp-plugins-test make build-plugins-container
         echo -n "verifying images:"
@@ -74,6 +74,7 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
         export SHELL=/bin/bash
+        eval $(minikube -p minikube docker-env)
         echo "----------------------------"
         echo "Test .plugins folder is copied to the right place in the image by 'make image'"
         echo "--- Files in the image /headlamp/ folder: ---"
@@ -105,20 +106,15 @@ jobs:
       run: |
         echo "------------------sleeping 3...------------------"
         sleep 6
-        kubectl get services --all-namespaces
-        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
-        echo $SERVICE_URL
+        minikube service list
+        minikube service headlamp -n kube-system --url
         kubectl get deployments -n kube-system
-        docker logs $(docker ps --filter "name=k3d-k3s-default-server" -q) | tail -10
+        minikube logs | tail -10
         echo "------------------waiting for headlamp deployment to be available...------------------"
         kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
-        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
-        echo $SERVICE_URL
+        minikube service headlamp -n kube-system --url
         echo "------------------opening the service------------------"
-        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
+        export SERVICE_URL=$(minikube service headlamp -n kube-system --url | tail -1)
         echo $SERVICE_URL
         curl -L $SERVICE_URL | grep -q "Headlamp: Kubernetes Web UI"        
         echo "------------------Getting HEADLAMP_TOKEN------------------"
@@ -141,6 +137,7 @@ jobs:
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
         export SHELL=/bin/bash
+        eval $(minikube -p minikube docker-env)
         mkdir -p ~/image-cache
         docker save -o ~/image-cache/headlamp-plugins-test.tar ghcr.io/headlamp-k8s/headlamp-plugins-test
         docker save -o ~/image-cache/headlamp.tar ghcr.io/headlamp-k8s/headlamp
