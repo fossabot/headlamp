@@ -26,6 +26,8 @@ jobs:
         node-version: 20.x
     - name: Start cluster
       uses: nolar/setup-k3d-k3s@v1
+      with:
+        version: latest
       # now you can run kubectl to see the pods in the cluster
     - name: Try the cluster!
       run: kubectl get pods -A
@@ -108,6 +110,7 @@ jobs:
         export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
         echo $SERVICE_URL
         kubectl get deployments -n kube-system
+        docker logs $(docker ps --filter "name=k3d-k3s-default-server" -q) | tail -10
         echo "------------------waiting for headlamp deployment to be available...------------------"
         kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
