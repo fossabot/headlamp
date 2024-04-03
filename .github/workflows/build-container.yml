@@ -108,7 +108,6 @@ jobs:
         export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
         kubectl get deployments -n kube-system
-        docker logs $(docker ps -f name=k3d -q) | tail -10
         echo "------------------waiting for headlamp deployment to be available...------------------"
         kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
