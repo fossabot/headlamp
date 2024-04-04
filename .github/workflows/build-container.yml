@@ -28,7 +28,9 @@ jobs:
       uses: nolar/setup-k3d-k3s@v1
       with:
         k3d-args: "--servers 1 --agents 2"
-    - run: kubectl cluster-info
+    - run: | 
+        kubectl cluster-info
+        sleep 10
       # now you can run kubectl to see the pods in the cluster
     - name: Try the cluster!
       run: kubectl get pods -A
@@ -108,17 +110,17 @@ jobs:
         sleep 6
         kubectl get services --all-namespaces
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
+        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
         kubectl get deployments -n kube-system
         echo "------------------waiting for headlamp deployment to be available...------------------"
         kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
+        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
         echo "------------------opening the service------------------"
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://192.168.49.2:${SERVICE_PORT}"
+        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
         curl -L $SERVICE_URL | grep -q "Headlamp: Kubernetes Web UI"        
         echo "------------------Getting HEADLAMP_TOKEN------------------"
