@@ -113,8 +113,10 @@ jobs:
         export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
         kubectl get deployments -n kube-system
+        kubectl describe deployment headlamp -n kube-system
+        kubectl logs -l app=headlamp -n kube-system
         echo "------------------waiting for headlamp deployment to be available...------------------"
-        kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
+        kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=60s
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
         export SERVICE_URL="http://localhost:${SERVICE_PORT}"
         echo $SERVICE_URL
