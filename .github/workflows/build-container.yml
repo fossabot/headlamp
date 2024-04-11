@@ -27,10 +27,7 @@ jobs:
     - name: Start cluster
       uses: nolar/setup-k3d-k3s@v1
       with:
-        k3d-args: "--servers 1 --agents 2"
-    - run: | 
-        kubectl cluster-info
-        sleep 10
+          k3d-args: --wait
       # now you can run kubectl to see the pods in the cluster
     - name: Try the cluster!
       run: kubectl get pods -A
