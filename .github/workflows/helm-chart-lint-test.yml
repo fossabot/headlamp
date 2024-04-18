@@ -38,12 +38,13 @@ jobs:
       - name: Run chart-testing (lint)
         run: ct lint --config .github/ct.yaml
 
-      - name: Set up k3d
-        uses: nolar/setup-k3d-k3s@v1
+      - name: Setup Minikube
+        uses: medyagh/setup-minikube@master
 
       - name: Build image & Run chart-testing (install)
         run: |
           export SHELL=/bin/bash
+          eval $(minikube -p minikube docker-env)
           DOCKER_IMAGE_VERSION=ci-test make image
           echo -n "verifying images:"
           docker images

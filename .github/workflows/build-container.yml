@@ -27,7 +27,7 @@ jobs:
     - name: Start cluster
       uses: nolar/setup-k3d-k3s@v1
       with:
-          k3d-args: --wait
+          k3d-args: --wait --port 8080:80@loadbalancer --agents 2
       # now you can run kubectl to see the pods in the cluster
     - name: Try the cluster!
       run: kubectl get pods -A
@@ -70,6 +70,11 @@ jobs:
         DOCKER_IMAGE_VERSION=latest DOCKER_PLUGINS_IMAGE_NAME=headlamp-plugins-test make build-plugins-container
         echo -n "verifying images:"
         docker images
+    - name: Import images to k3d
+      run: |
+        export SHELL=/bin/bash
+        k3d image import ghcr.io/headlamp-k8s/headlamp-plugins-test:latest -c k3s-default
+        k3d image import ghcr.io/headlamp-k8s/headlamp:latest -c k3s-default
     - name: Test .plugins folder
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |
@@ -99,33 +104,35 @@ jobs:
           exit 1
         fi
     - name: Deploy to cluster
-      run:
-        kubectl apply -f e2e-tests/kubernetes-headlamp-ci.yaml
+      run: kubectl apply -f e2e-tests/kubernetes-headlamp-ci.yaml
     - name: Run e2e tests
       run: |
         echo "------------------sleeping 3...------------------"
         sleep 6
         kubectl get services --all-namespaces
-        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
-        echo $SERVICE_URL
         kubectl get deployments -n kube-system
         kubectl describe deployment headlamp -n kube-system
         kubectl logs -l app=headlamp -n kube-system
         echo "------------------waiting for headlamp deployment to be available...------------------"
-        kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=60s
-        SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
-        echo $SERVICE_URL
+        kubectl wait deployment -n kube-system headlamp --for condition=Available=True --timeout=30s
         echo "------------------opening the service------------------"
+        IP_ADDRESS=$(kubectl get nodes -o=jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
         SERVICE_PORT=$(kubectl get services headlamp -n kube-system -o=jsonpath='{.spec.ports[0].nodePort}')
-        export SERVICE_URL="http://localhost:${SERVICE_PORT}"
+        export SERVICE_URL="http://${IP_ADDRESS}:${SERVICE_PORT}"
         echo $SERVICE_URL
         curl -L $SERVICE_URL | grep -q "Headlamp: Kubernetes Web UI"        
         echo "------------------Getting HEADLAMP_TOKEN------------------"
         kubectl create serviceaccount headlamp-admin --namespace kube-system
         kubectl create clusterrolebinding headlamp-admin --serviceaccount=kube-system:headlamp-admin --clusterrole=cluster-admin
         export HEADLAMP_TOKEN=$(kubectl create token headlamp-admin --duration 24h -n kube-system)
+        echo "------------------Modifying certificate handling------------------"
+        export KUBECONFIG=$(k3d kubeconfig write k3s-default)
+        ca_data=$(yq e '.clusters[0].cluster."certificate-authority-data"' $KUBECONFIG | base64 --decode)
+        echo "$ca_data" > ca.crt
+        kubectl config set-cluster k3d-k3s-default --certificate-authority=$(pwd)/ca.crt
+        kubectl config unset clusters.k3d-k3s-default.certificate-authority-data
+        echo "Modified kubeconfig:"
+        cat $KUBECONFIG
         echo "------------------Running playwright e2e tests------------------"
         cd e2e-tests
         npm ci
@@ -138,6 +145,11 @@ jobs:
         else
           echo "Playwright tests passed successfully"
         fi
+    - name: Check info on failure
+      if: failure()
+      run: |
+        kubectl cluster-info
+        kubectl get nodes -o wide
     - name: Save Docker Images to Tar files in image-cache Folder
       if: steps.cache-image-restore.outputs.cache-hit != 'true'
       run: |

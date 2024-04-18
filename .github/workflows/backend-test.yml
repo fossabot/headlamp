@@ -27,11 +27,12 @@ jobs:
           go mod download
     
       - name: Start cluster
-        uses: nolar/setup-k3d-k3s@v1
+        uses: medyagh/setup-minikube@master
 
       - name: Check cluster status and enable headlamp addon
         run: |
-          kubectl apply -f kubernetes-headlamp.yaml
+          minikube status
+          minikube addons enable headlamp
           kubectl wait deployment -n headlamp headlamp --for condition=Available=True --timeout=30s    
 
       - name: Run tests and calculate code coverage
