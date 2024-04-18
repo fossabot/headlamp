@@ -15,10 +15,15 @@ on:
     - Dockerfile.plugins
     - 'e2e-tests/**'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     name: build discover and deploy
+    permissions:
+      actions: write # needed to upload artifacts
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v3

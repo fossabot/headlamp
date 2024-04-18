@@ -11,9 +11,17 @@ on:
         description: Notarize app
         default: true
         type: boolean
+
+permissions:
+  contents: read
+
 jobs:
   build-mac:
     runs-on: macos-latest
+    permissions:
+      contents: read
+      secrets: read
+      actions: write # needed to upload artifacts
     steps:
     - uses: actions/checkout@v4
       with:
@@ -60,6 +68,10 @@ jobs:
         if-no-files-found: error
         retention-days: 1
   notarize:
+    permissions:
+      id-token: write # For fetching an OpenID Connect (OIDC) token
+      contents: read
+      secrets: read
     runs-on: windows-latest
     needs: build-mac
     if: ${{ inputs.signBinaries }}
@@ -80,11 +92,17 @@ jobs:
       with:
         name: dmgs
         path: ./dmgs
+    - name: Azure login
+      if: ${{ inputs.signBinaries }}
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.WINDOWS_CLIENT_ID }}
+        tenant-id: ${{ secrets. AZ_TENANT_ID }}
+        subscription-id: ${{ secrets.AZ_SUBSCRIPTION_ID }}
     - name: Fetch certificates
       if: ${{ inputs.signBinaries }}
       shell: pwsh
       run: |
-        az login --service-principal -u ${{ secrets.WINDOWS_CLIENT_ID }} -p ${{ secrets.AZ_LOGIN_PASS }}  --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
         az keyvault secret download --subscription ${{ secrets.AZ_SUBSCRIPTION_ID }} --vault-name headlamp --name HeadlampAuthCert --file c:\HeadlampAuthCert.pfx --encoding base64
         az keyvault secret download --subscription ${{ secrets.AZ_SUBSCRIPTION_ID }} --vault-name headlamp --name ESRPHeadlampReqCert --file c:\HeadlampReqCert.pfx --encoding base64
     - name: Set up certificates
@@ -126,6 +144,9 @@ jobs:
   stapler:
     runs-on: macos-latest
     needs: notarize
+    permissions:
+      actions: write # for downloading and uploading artifacts
+      contents: read
     if: ${{ inputs.signBinaries }}
     steps:
     - name: Download artifact

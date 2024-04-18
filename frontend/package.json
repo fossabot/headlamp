@@ -6,6 +6,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.9",
     "@apidevtools/swagger-parser": "^10.0.3",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@iconify/icons-mdi": "^1.2.9",
@@ -153,6 +154,12 @@
     ],
     "../plugins/examples/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
       "prettier --config package.json --write"
+    ],
+    "../e2e-tests/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "prettier --config package.json --write"
+    ],
+    "../e2e-tests/**/*.{ts,tsx}": [
+      "eslint -c package.json --fix --resolve-plugins-relative-to ."
     ]
   },
   "eslintConfig": {
@@ -197,15 +204,19 @@
     "@storybook/react": "7.6.7",
     "@storybook/react-webpack5": "^7.6.7",
     "@testing-library/user-event": "^14.5.1",
+    "@types/nock": "^11.1.0",
     "@types/redux-mock-store": "^1.0.4",
     "fetch-mock": "^9.11.0",
     "http-proxy-middleware": "^2.0.1",
     "husky": "^4.3.8",
     "i18next-parser": "^4.7.0",
     "jest-canvas-mock": "^2.4.0",
+    "jest-html-reporter": "^3.10.2",
+    "jest-websocket-mock": "^2.5.0",
     "lint-staged": "^10.5.4",
     "msw": "^0.47.4",
     "msw-storybook-addon": "^1.10.0",
+    "nock": "^13.5.4",
     "prettier": "^2.7.1",
     "redux-mock-store": "^1.5.4",
     "resize-observer-polyfill": "^1.5.1",
@@ -214,6 +225,7 @@
     "typedoc-hugo-theme": "1.0.0",
     "typedoc-plugin-markdown": "3.11.14",
     "typedoc-plugin-rename-defaults": "0.4.0",
-    "vm-browserify": "^1.1.2"
+    "vm-browserify": "^1.1.2",
+    "ws": "^8.16.0"
   }
 }
